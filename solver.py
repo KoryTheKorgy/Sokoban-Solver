@@ -3,7 +3,8 @@ import collections
 import numpy as np
 import heapq
 import time
-import numpy as np
+import pygame
+
 global posWalls, posGoals
 class PriorityQueue:
     """Define a PriorityQueue data structure that will be used"""
@@ -155,6 +156,7 @@ def depthFirstSearch(gameState):
     actions = [[0]] 
     temp = []
     while frontier:
+        pygame.event.get()
         node = frontier.pop()
         node_action = actions.pop()
         if isEndState(node[-1][-1]):
@@ -180,7 +182,23 @@ def breadthFirstSearch(gameState):
     exploredSet = set()
     actions = collections.deque([[0]])
     temp = []
-    ### CODING FROM HERE ###
+    ### CODING FROM HERE ###    
+    while frontier:
+        pygame.event.get()
+        node = frontier.pop()
+        node_action = actions.pop()
+        if isEndState(node[-1][-1]):
+            temp += node_action[1:]
+            break
+        if node[-1] not in exploredSet:
+            exploredSet.add(node[-1])
+            for action in legalActions(node[-1][0], node[-1][1]):
+                newPosPlayer, newPosBox = updateState(node[-1][0], node[-1][1], action)
+                if isFailed(newPosBox):
+                    continue
+                frontier.appendleft(node + [(newPosPlayer, newPosBox)])
+                actions.appendleft(node_action + [action[-1]])
+    return temp
 
 def cost(actions):
     """A cost function"""
