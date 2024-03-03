@@ -34,6 +34,7 @@ class PlayerInterface:
         # Reset level
         if x > self.posTxtAuto[0] and x < self.posTxtAuto[0] + self.txtAutoSurface.get_width() \
         and y > self.posTxtAuto[1] and y < self.posTxtAuto[1] + self.txtAutoSurface.get_height():
+            print("Solving...")
             game.auto_move()
                 
     def setTxtColors(self):
