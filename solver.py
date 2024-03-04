@@ -232,6 +232,45 @@ def uniformCostSearch(gameState):
                 actions.push(node_action + [action[-1]], Cost)
 
 
+def heuristic(posPlayer, posBox):
+    """A heuristic function to calculate the overall distance between the else boxes and the else goals"""
+    distance = 0
+    completes = set(posGoals) & set(posBox)
+    sortposBox = list(set(posBox).difference(completes))
+    sortposGoals = list(set(posGoals).difference(completes))
+    for i in range(len(sortposBox)):
+        distance += (abs(sortposBox[i][0] - sortposGoals[i][0])) + (abs(sortposBox[i][1] - sortposGoals[i][1]))
+    return distance
+
+def aStarSearch(gameState):
+    """Implement aStarSearch approach"""
+    beginBox = PosOfBoxes(gameState)
+    beginPlayer = PosOfPlayer(gameState)
+
+    start_state = (beginPlayer, beginBox)
+    frontier = PriorityQueue()
+    frontier.push([start_state], heuristic(beginPlayer, beginBox))
+    exploredSet = set()
+    actions = PriorityQueue()
+    actions.push([0], heuristic(beginPlayer, start_state[1]))
+    while frontier:
+        node = frontier.pop()
+        node_action = actions.pop()
+        if isEndState(node[-1][-1]):
+            return(node_action[1:])
+            break
+        if node[-1] not in exploredSet:
+            exploredSet.add(node[-1])
+            Cost = cost(node_action[1:])
+            for action in legalActions(node[-1][0], node[-1][1]):
+                newPosPlayer, newPosBox = updateState(node[-1][0], node[-1][1], action)
+                if isFailed(newPosBox):
+                    continue
+                Heuristic = heuristic(newPosPlayer, newPosBox)
+                frontier.push(node + [(newPosPlayer, newPosBox)], Heuristic + Cost) 
+                actions.push(node_action + [action[-1]], Heuristic + Cost)
+
+
 """Read command"""
 def readCommand(argv):
     from optparse import OptionParser
@@ -263,6 +302,8 @@ def get_move(layout, player_pos, method):
         result = breadthFirstSearch(gameState)
     elif method == 'ucs':
         result = uniformCostSearch(gameState)
+    elif method == 'astar':
+        result = aStarSearch(gameState)
     else:
         raise ValueError('Invalid method.')
     time_end=time.time()
