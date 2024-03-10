@@ -56,6 +56,7 @@ def transferToGameState2(layout, player_pos):
             temp[i][j] = layout[i][j]
 
     temp[player_pos[1]][player_pos[0]] = 2
+    print(temp)
     return temp
 
 def PosOfPlayer(gameState):
@@ -216,6 +217,7 @@ def uniformCostSearch(gameState):
     actions = PriorityQueue()
     actions.push([0], 0)
     while frontier:
+        pygame.event.get()
         node = frontier.pop()
         node_action = actions.pop()
         if isEndState(node[-1][-1]):
@@ -239,6 +241,7 @@ def heuristic(posPlayer, posBox):
     sortposBox = list(set(posBox).difference(completes))
     sortposGoals = list(set(posGoals).difference(completes))
     for i in range(len(sortposBox)):
+        # Manhattan distance
         distance += (abs(sortposBox[i][0] - sortposGoals[i][0])) + (abs(sortposBox[i][1] - sortposGoals[i][1]))
     return distance
 
@@ -254,11 +257,11 @@ def aStarSearch(gameState):
     actions = PriorityQueue()
     actions.push([0], heuristic(beginPlayer, start_state[1]))
     while frontier:
+        pygame.event.get()
         node = frontier.pop()
         node_action = actions.pop()
         if isEndState(node[-1][-1]):
             return(node_action[1:])
-            break
         if node[-1] not in exploredSet:
             exploredSet.add(node[-1])
             Cost = cost(node_action[1:])
@@ -307,6 +310,7 @@ def get_move(layout, player_pos, method):
     else:
         raise ValueError('Invalid method.')
     time_end=time.time()
-    print('Runtime of %s: %.2f second.' %(method, time_end-time_start))
+    print('Runtime of %s: %.3f second.' %(method, time_end-time_start))
+    print('Number of actions: %i' %(len(result)))
     print(result)
     return result
