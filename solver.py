@@ -4,6 +4,7 @@ import numpy as np
 import heapq
 import time
 import pygame
+from math import sqrt
 
 global posWalls, posGoals
 class PriorityQueue:
@@ -120,6 +121,7 @@ def updateState(posPlayer, posBox, action):
 
 def isFailed(posBox):
     """This function used to observe if the state is potentially failed, then prune the search"""
+    # If the new pos potisiton is in the corner (Can't move the box anymore) and the new position is not the goal, is the fail state
     rotatePattern = [[0,1,2,3,4,5,6,7,8],
                     [2,5,8,1,4,7,0,3,6],
                     [0,1,2,3,4,5,6,7,8][::-1],
@@ -157,8 +159,8 @@ def depthFirstSearch(gameState):
     actions = [[0]] 
     temp = []
     while frontier:
-        pygame.event.get()
-        node = frontier.pop()
+        pygame.event.get() 
+        node = frontier.pop() 
         node_action = actions.pop()
         if isEndState(node[-1][-1]):
             temp += node_action[1:]
@@ -182,27 +184,28 @@ def breadthFirstSearch(gameState):
     frontier = collections.deque([[startState]])
     exploredSet = set()
     actions = collections.deque([[0]])
-    temp = []
-    ### CODING FROM HERE ###    
+    solution = []
+
     while frontier:
-        pygame.event.get()
-        node = frontier.pop()
-        node_action = actions.pop()
-        if isEndState(node[-1][-1]):
-            temp += node_action[1:]
+        pygame.event.get() # Fix `Not Responding`` when running too long.
+        node = frontier.pop() # Get the first state in the frontier
+        node_action = actions.pop() # The action of the frontier
+        if isEndState(node[-1][-1]): # Check if the current state is the end state (all boxes in target postition)
+            solution += node_action[1:] # Return the answer
             break
-        if node[-1] not in exploredSet:
-            exploredSet.add(node[-1])
-            for action in legalActions(node[-1][0], node[-1][1]):
-                newPosPlayer, newPosBox = updateState(node[-1][0], node[-1][1], action)
-                if isFailed(newPosBox):
+        if node[-1] not in exploredSet: # Check if the current state in the explored set
+            exploredSet.add(node[-1])   # Add the current state to the explored set so the program doesn't loop again
+            for action in legalActions(node[-1][0], node[-1][1]): # For all legal actions from the current state
+                newPosPlayer, newPosBox = updateState(node[-1][0], node[-1][1], action) # Get the new player position and the new box position
+                if isFailed(newPosBox): # Check for fail state (Explanition in the code)
                     continue
-                frontier.appendleft(node + [(newPosPlayer, newPosBox)])
-                actions.appendleft(node_action + [action[-1]])
-    return temp
+                frontier.appendleft(node + [(newPosPlayer, newPosBox)]) # Add the new state to the end of the queue (BFS)
+                actions.appendleft(node_action + [action[-1]]) # Add the new action to the end of the queue (BFS)
+    return solution
 
 def cost(actions):
     """A cost function"""
+    # The cost of the actions is the number of moves until present
     return len([x for x in actions if x.islower()])
 
 def uniformCostSearch(gameState):
@@ -211,17 +214,67 @@ def uniformCostSearch(gameState):
     beginPlayer = PosOfPlayer(gameState)
 
     startState = (beginPlayer, beginBox)
-    frontier = PriorityQueue()
+    frontier = PriorityQueue() # Use Priority Queue to sort the state with the cost
     frontier.push([startState], 0)
     exploredSet = set()
-    actions = PriorityQueue()
+    actions = PriorityQueue() # Use Priority Queue to sort the actions with the cost
     actions.push([0], 0)
+    solution = []
     while frontier:
         pygame.event.get()
         node = frontier.pop()
         node_action = actions.pop()
         if isEndState(node[-1][-1]):
-            return node_action[1:]
+            solution += node_action[1:]
+            break
+        if node[-1] not in exploredSet:
+            exploredSet.add(node[-1])
+            Cost = cost(node_action[1:]) # Uses the cost function to get the cost of all actions
+            for action in legalActions(node[-1][0], node[-1][1]):
+                newPosPlayer, newPosBox = updateState(node[-1][0], node[-1][1], action)
+                if isFailed(newPosBox):
+                    continue
+                frontier.push(node + [(newPosPlayer, newPosBox)], Cost) # Push the new state to the frontier with the cost of the actions
+                actions.push(node_action + [action[-1]], Cost) # Push the actions to the frontier with the cost of the actions
+    return solution
+
+def heuristic(posPlayer, posBox):
+    # Heuristic function to calculate the overall distance between the else boxes and the else goals using Manhattan Distance
+    distance = 0
+    setPosGoals = set(posGoals)
+    setPosBox = set(posBox)
+    completes = setPosGoals.intersection(setPosBox) # Check for boxes already on the goal
+    sortposBox = list(set(posBox) - completes) # Get all boxes that is not on the goal
+    sortposGoals = list(set(posGoals) - completes) # Get all goals that does not have a box
+    for i in range(len(sortposBox)):
+        # Manhattan distance (not optimal but faster)
+        # distance += (abs(sortposBox[i][0] - sortposGoals[i][0])) + (abs(sortposBox[i][1] - sortposGoals[i][1]))
+        # Euler distance
+        # distance += sqrt((sortposBox[i][0] - sortposGoals[i][0])**2 + (sortposBox[i][1] - sortposGoals[i][1])**2)
+        # Euler distance with player position (Found better solution but takes longer to run)
+        distance += (abs(sortposBox[i][0] - sortposGoals[i][0])) + (abs(sortposBox[i][1] - sortposGoals[i][1])) + (abs(sortposBox[i][0] - posPlayer[i][0])) + (abs(sortposBox[i][1] - posPlayer[i][1]))
+
+        # There is no clear difference between the two
+    return distance
+
+def greedySearch(gameState):
+    """Implement greedySearch approach"""
+    beginBox = PosOfBoxes(gameState)
+    beginPlayer = PosOfPlayer(gameState)
+
+    start_state = (beginPlayer, beginBox)
+    frontier = PriorityQueue()
+    frontier.push([start_state], heuristic(beginPlayer, beginBox))
+    exploredSet = set()
+    actions = PriorityQueue()
+    actions.push([0], heuristic(beginPlayer, start_state[1]))
+    solution = []
+    while frontier:
+        pygame.event.get()
+        node = frontier.pop()
+        node_action = actions.pop()
+        if isEndState(node[-1][-1]):
+            solution += node_action[1:]
             break
         if node[-1] not in exploredSet:
             exploredSet.add(node[-1])
@@ -230,20 +283,10 @@ def uniformCostSearch(gameState):
                 newPosPlayer, newPosBox = updateState(node[-1][0], node[-1][1], action)
                 if isFailed(newPosBox):
                     continue
-                frontier.push(node + [(newPosPlayer, newPosBox)], Cost)
-                actions.push(node_action + [action[-1]], Cost)
-
-
-def heuristic(posPlayer, posBox):
-    """A heuristic function to calculate the overall distance between the else boxes and the else goals"""
-    distance = 0
-    completes = set(posGoals) & set(posBox)
-    sortposBox = list(set(posBox).difference(completes))
-    sortposGoals = list(set(posGoals).difference(completes))
-    for i in range(len(sortposBox)):
-        # Manhattan distance
-        distance += (abs(sortposBox[i][0] - sortposGoals[i][0])) + (abs(sortposBox[i][1] - sortposGoals[i][1]))
-    return distance
+                Heuristic = heuristic(newPosPlayer, newPosBox)
+                frontier.push(node + [(newPosPlayer, newPosBox)], Heuristic) # Push with Heuristic only. Greedy expand the node that "seems" the closest
+                actions.push(node_action + [action[-1]], Heuristic) # Push with Heuristic only. 
+    return solution
 
 def aStarSearch(gameState):
     """Implement aStarSearch approach"""
@@ -256,12 +299,14 @@ def aStarSearch(gameState):
     exploredSet = set()
     actions = PriorityQueue()
     actions.push([0], heuristic(beginPlayer, start_state[1]))
+    solution = []
     while frontier:
         pygame.event.get()
         node = frontier.pop()
         node_action = actions.pop()
         if isEndState(node[-1][-1]):
-            return(node_action[1:])
+            solution += node_action[1:]
+            break
         if node[-1] not in exploredSet:
             exploredSet.add(node[-1])
             Cost = cost(node_action[1:])
@@ -270,9 +315,9 @@ def aStarSearch(gameState):
                 if isFailed(newPosBox):
                     continue
                 Heuristic = heuristic(newPosPlayer, newPosBox)
-                frontier.push(node + [(newPosPlayer, newPosBox)], Heuristic + Cost) 
-                actions.push(node_action + [action[-1]], Heuristic + Cost)
-
+                frontier.push(node + [(newPosPlayer, newPosBox)], Heuristic + Cost) # Push with sum of Heuristic and cost.
+                actions.push(node_action + [action[-1]], Heuristic + Cost) # Push with  sum of Heuristic and cost. Can we add a variable to lower the influence of Heuristic and vice versa?
+    return solution
 
 """Read command"""
 def readCommand(argv):
@@ -307,6 +352,8 @@ def get_move(layout, player_pos, method):
         result = uniformCostSearch(gameState)
     elif method == 'astar':
         result = aStarSearch(gameState)
+    elif method == 'greedy':
+        result = greedySearch(gameState)
     else:
         raise ValueError('Invalid method.')
     time_end=time.time()
