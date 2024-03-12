@@ -248,13 +248,13 @@ def heuristic(posPlayer, posBox):
     sortposGoals = list(set(posGoals) - completes) # Get all goals that does not have a box
     for i in range(len(sortposBox)):
         # Manhattan distance (not optimal but faster)
-        # distance += (abs(sortposBox[i][0] - sortposGoals[i][0])) + (abs(sortposBox[i][1] - sortposGoals[i][1]))
+        distance += (abs(sortposBox[i][0] - sortposGoals[i][0])) + (abs(sortposBox[i][1] - sortposGoals[i][1]))
         # Euler distance
         # distance += sqrt((sortposBox[i][0] - sortposGoals[i][0])**2 + (sortposBox[i][1] - sortposGoals[i][1])**2)
         # Euler distance with player position (Found better solution but takes longer to run)
-        distance += (abs(sortposBox[i][0] - sortposGoals[i][0])) + (abs(sortposBox[i][1] - sortposGoals[i][1])) + (abs(sortposBox[i][0] - posPlayer[i][0])) + (abs(sortposBox[i][1] - posPlayer[i][1]))
+        # distance += (abs(sortposBox[i][0] - sortposGoals[i][0])) + (abs(sortposBox[i][1] - sortposGoals[i][1])) + (abs(sortposBox[i][0] - posPlayer[i][0])) + (abs(sortposBox[i][1] - posPlayer[i][1]))
 
-        # There is no clear difference between the two
+        # There is no clear difference between the two type of distance.
     return distance
 
 def greedySearch(gameState):
@@ -264,10 +264,10 @@ def greedySearch(gameState):
 
     start_state = (beginPlayer, beginBox)
     frontier = PriorityQueue()
-    frontier.push([start_state], heuristic(beginPlayer, beginBox))
+    frontier.push([start_state], heuristic(beginPlayer, beginBox)) # Start with the estimate cost of both player and boxes
     exploredSet = set()
     actions = PriorityQueue()
-    actions.push([0], heuristic(beginPlayer, start_state[1]))
+    actions.push([0], heuristic(beginPlayer, start_state[1])) # Start with the estimate cost of both player and boxes
     solution = []
     while frontier:
         pygame.event.get()
@@ -278,7 +278,6 @@ def greedySearch(gameState):
             break
         if node[-1] not in exploredSet:
             exploredSet.add(node[-1])
-            Cost = cost(node_action[1:])
             for action in legalActions(node[-1][0], node[-1][1]):
                 newPosPlayer, newPosBox = updateState(node[-1][0], node[-1][1], action)
                 if isFailed(newPosBox):
@@ -295,10 +294,10 @@ def aStarSearch(gameState):
 
     start_state = (beginPlayer, beginBox)
     frontier = PriorityQueue()
-    frontier.push([start_state], heuristic(beginPlayer, beginBox))
+    frontier.push([start_state], heuristic(beginPlayer, beginBox)) # Start with the estimate cost of both player and boxes
     exploredSet = set()
     actions = PriorityQueue()
-    actions.push([0], heuristic(beginPlayer, start_state[1]))
+    actions.push([0], heuristic(beginPlayer, start_state[1])) # Start with the estimate cost of both player and boxes
     solution = []
     while frontier:
         pygame.event.get()
